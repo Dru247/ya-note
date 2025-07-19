@@ -1,3 +1,4 @@
+"""Django тесты маршрутизации."""
 from http import HTTPStatus
 
 from django.contrib.auth import get_user_model
@@ -10,6 +11,7 @@ User = get_user_model()
 
 
 class TestRoutes(TestCase):
+    """Тесты маршрутизации."""
     APP_NAME = 'notes'
 
     @classmethod
