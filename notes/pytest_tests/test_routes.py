@@ -52,8 +52,6 @@ def test_pages_availability_for_different_users(
 
 
 @pytest.mark.parametrize(
-    # Вторым параметром передаём note_object,
-    # в котором будет либо фикстура с объектом заметки, либо None.
     'name, args',
     (
         ('notes:detail', lf('slug_for_args')),
