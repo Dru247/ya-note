@@ -1,10 +1,8 @@
 """Фиктуры тестов."""
 import pytest
 
-# Импортируем класс клиента.
 from django.test.client import Client
 
-# Импортируем модель заметки, чтобы создать экземпляр.
 from notes.models import Note
 
 
