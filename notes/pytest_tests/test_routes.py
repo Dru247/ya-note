@@ -12,13 +12,13 @@ from django.urls import reverse
     # Значения, которые будут передаваться в name.
     ('notes:home', 'users:login', 'users:logout', 'users:signup')
 )
-# Указываем имя изменяемого параметра в сигнатуре теста.
 def test_pages_availability_for_anonymous_user(client, name):
-    url = reverse(name)  # Получаем ссылку на нужный адрес.
+    """Тест доступности страниц для анонимного пользователя."""
+    url = reverse(name)
     if name == 'users:logout':
         response = client.post(url)
     else:
-        response = client.get(url)  # Выполняем запрос.
+        response = client.get(url)
     assert response.status_code == HTTPStatus.OK
 
 
@@ -27,6 +27,7 @@ def test_pages_availability_for_anonymous_user(client, name):
     ('notes:list', 'notes:add', 'notes:success')
 )
 def test_pages_availability_for_auth_user(not_author_client, name):
+    """Тест доступности страниц для авторизированного пользователя."""
     url = reverse(name)
     response = not_author_client.get(url)
     assert response.status_code == HTTPStatus.OK
@@ -46,6 +47,7 @@ def test_pages_availability_for_auth_user(not_author_client, name):
 def test_pages_availability_for_different_users(
     parametrized_client, name, slug_for_args, expected_status
 ):
+    """Тест доступности страниц редактирования записи."""
     url = reverse(name, args=slug_for_args)
     response = parametrized_client.get(url)
     assert response.status_code == expected_status
@@ -62,12 +64,10 @@ def test_pages_availability_for_different_users(
         ('notes:list', None),
     ),
 )
-# Передаём в тест анонимный клиент, name проверяемых страниц и note_object:
 def test_redirects(client, name, args):
+    """Тест редиректа."""
     login_url = reverse('users:login')
     url = reverse(name, args=args)
     expected_url = f'{login_url}?next={url}'
     response = client.get(url)
-    # Ожидаем, что со всех проверяемых страниц анонимный клиент
-    # будет перенаправлен на страницу логина:
     assertRedirects(response, expected_url)
