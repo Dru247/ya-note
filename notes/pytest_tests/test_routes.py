@@ -8,8 +8,7 @@ from pytest_lazy_fixtures import lf
 
 
 @pytest.mark.parametrize(
-    'name',  # Имя параметра функции.
-    # Значения, которые будут передаваться в name.
+    'name',
     ('notes:home', 'users:login', 'users:logout', 'users:signup')
 )
 def test_pages_availability_for_anonymous_user(client, name):

@@ -7,6 +7,7 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
+from notes.forms import WARNING
 from notes.models import Note
 
 User = get_user_model()
@@ -123,7 +124,28 @@ class TestNoteSlugCreate(TestCase):
             text=cls.NOTE_TEXT,
             author=cls.author
         )
+        cls.author_client = Client()
+        cls.author_client.force_login(cls.author)
+        cls.form_data = {
+            'title': 'Следующий заголовок',
+            'text': 'Следующий текст'
+        }
+        cls.url_create = reverse('notes:add')
 
     def test_auto_create_slug(self):
         """Тест проверки созданного slug."""
         self.assertEqual(self.note.slug, slugify(self.NOTE_TITLE))
+
+    def test_unique_slug(self):
+        """Тест проверки уникальности slug."""
+        self.form_data['slug'] = self.note.slug
+        response = self.author_client.post(
+            self.url_create,
+            data=self.form_data
+        )
+        form = response.context['form']
+        self.assertFormError(
+            form,
+            'slug',
+            self.note.slug + WARNING
+        )

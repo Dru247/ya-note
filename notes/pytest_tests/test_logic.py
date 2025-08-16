@@ -1,4 +1,4 @@
-"""Django тесты бизнес логики."""
+"""Тесты бизнес логики."""
 from http import HTTPStatus
 
 import pytest
@@ -25,7 +25,7 @@ def test_user_can_create_note(author_client, author, form_data):
 
 @pytest.mark.django_db
 def test_anonymous_user_cant_create_note(client, form_data):
-    """Тест анонимный пользователь не может создать заявку."""
+    """Тест анонимный пользователь не может создать запись."""
     url = reverse('notes:add')
     response = client.post(url, data=form_data)
     login_url = reverse('users:login')
