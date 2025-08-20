@@ -2,7 +2,7 @@
 from http import HTTPStatus
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import Client, TestCase
 from django.urls import reverse
 
 from notes.models import Note
@@ -10,108 +10,117 @@ from notes.models import Note
 User = get_user_model()
 
 
-class TestRoutes(TestCase):
-    """Тесты маршрутизации."""
+class BaseFixtures(TestCase):
+    """Базовые фикстуры."""
+
     APP_NAME = 'notes'
 
     @classmethod
     def setUpTestData(cls):
         """Фикстуры класса."""
         cls.author = User.objects.create(username='Лев Толстой')
+        cls.client_author = Client()
+        cls.client_author.force_login(cls.author)
         cls.reader = User.objects.create(username='Читатель простой')
+        cls.client_reader = Client()
+        cls.client_reader.force_login(cls.reader)
         cls.note = Note.objects.create(
             author=cls.author,
             title='Заголовок записи 1',
             text='Текст записи 1',
             slug='test_slug_1'
         )
+        cls.url_user_login = reverse('users:login')
+        cls.url_user_logout = reverse('users:logout')
+        cls.url_user_signup = reverse('users:signup')
+        cls.url_note_home = reverse('users:login')
+        cls.url_note_add = reverse(cls.APP_NAME + ':add')
+        cls.url_note_edit = reverse(
+            cls.APP_NAME + ':edit',
+            args=(cls.note.slug,)
+        )
+        cls.url_note_detail = reverse(
+            cls.APP_NAME + ':detail',
+            args=(cls.note.slug,)
+        )
+        cls.url_note_delete = reverse(
+            cls.APP_NAME + ':delete',
+            args=(cls.note.slug,)
+        )
+        cls.url_note_list = reverse(cls.APP_NAME + ':list')
+        cls.url_note_success = reverse(cls.APP_NAME + ':success')
+
+
+class TestRoutes(BaseFixtures):
+    """Тесты маршрутизации."""
 
     def test_availability_anonymous_client(self):
         """Тест доступа к страницам анонимного пользователя."""
-        url_names = (
-            ('users:login', None, HTTPStatus.OK),
-            ('users:logout', None, HTTPStatus.OK),
-            ('users:signup', None, HTTPStatus.OK),
-            (self.APP_NAME + ':home', None, HTTPStatus.OK),
-            (self.APP_NAME + ':add', None, HTTPStatus.FOUND),
-            (self.APP_NAME + ':edit', (self.note.slug,), HTTPStatus.FOUND),
-            (self.APP_NAME + ':detail', (self.note.slug,), HTTPStatus.FOUND),
-            (self.APP_NAME + ':delete', (self.note.slug,), HTTPStatus.FOUND),
-            (self.APP_NAME + ':list', None, HTTPStatus.FOUND),
-            (self.APP_NAME + ':success', None, HTTPStatus.FOUND),
+        urls = (
+            (self.url_user_login, HTTPStatus.OK),
+            (self.url_user_signup, HTTPStatus.OK),
+            (self.url_note_home, HTTPStatus.OK),
+            (self.url_note_add, HTTPStatus.FOUND),
+            (self.url_note_edit, HTTPStatus.FOUND),
+            (self.url_note_detail, HTTPStatus.FOUND),
+            (self.url_note_delete, HTTPStatus.FOUND),
+            (self.url_note_list, HTTPStatus.FOUND),
+            (self.url_note_success, HTTPStatus.FOUND)
         )
-        for name, args, status in url_names:
-            with self.subTest(name=name):
-                url = reverse(name, args=args)
-                if name == 'users:logout':
-                    response = self.client.post(url)
-                else:
-                    response = self.client.get(url)
+        for url, status in urls:
+            with self.subTest(url=url):
+                response = self.client.get(url)
                 self.assertEqual(response.status_code, status)
 
     def test_availability_reader_client(self):
         """Тест доступа к страницам авторизированного пользователя."""
-        url_names = (
-            ('users:login', None, HTTPStatus.OK),
-            ('users:logout', None, HTTPStatus.OK),
-            ('users:signup', None, HTTPStatus.OK),
-            (self.APP_NAME + ':home', None, HTTPStatus.OK),
-            (self.APP_NAME + ':add', None, HTTPStatus.OK),
-            (self.APP_NAME + ':edit', (self.note.slug,), HTTPStatus.NOT_FOUND),
-            (
-                self.APP_NAME + ':detail',
-                (self.note.slug,),
-                HTTPStatus.NOT_FOUND
-            ),
-            (
-                self.APP_NAME + ':delete',
-                (self.note.slug,),
-                HTTPStatus.NOT_FOUND
-            ),
-            (self.APP_NAME + ':list', None, HTTPStatus.OK),
-            (self.APP_NAME + ':success', None, HTTPStatus.OK),
+        urls = (
+            (self.url_user_login, HTTPStatus.OK),
+            (self.url_user_signup, HTTPStatus.OK),
+            (self.url_note_home, HTTPStatus.OK),
+            (self.url_note_add, HTTPStatus.OK),
+            (self.url_note_edit, HTTPStatus.NOT_FOUND),
+            (self.url_note_detail, HTTPStatus.NOT_FOUND),
+            (self.url_note_delete, HTTPStatus.NOT_FOUND),
+            (self.url_note_list, HTTPStatus.OK),
+            (self.url_note_success, HTTPStatus.OK),
         )
-        for name, args, status in url_names:
-            with self.subTest(name=name):
-                self.client.force_login(self.reader)
-                url = reverse(name, args=args)
-                if name == 'users:logout':
-                    response = self.client.post(url)
-                else:
-                    response = self.client.get(url)
+        for url, status in urls:
+            with self.subTest(url=url):
+                response = self.client_reader.get(url)
                 self.assertEqual(response.status_code, status)
+
+    def test_availability_logout_anonymous_and_aut_client(self):
+        """Тест доступа logout для анонимного и авторизированного клиента."""
+        for client in (self.client, self.client_reader):
+            with self.subTest():
+                response = client.post(self.url_user_logout)
+                self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_availability_author_client(self):
         """Тест доступа к страницам авторизированного автора."""
-        url_names = (
-            (self.APP_NAME + ':edit', (self.note.slug,), HTTPStatus.OK),
-            (self.APP_NAME + ':detail', (self.note.slug,), HTTPStatus.OK),
-            (self.APP_NAME + ':delete', (self.note.slug,), HTTPStatus.OK)
+        urls = (
+            (self.url_note_edit, HTTPStatus.OK),
+            (self.url_note_detail, HTTPStatus.OK),
+            (self.url_note_delete, HTTPStatus.OK)
         )
-        for name, args, status in url_names:
-            with self.subTest(name=name):
-                self.client.force_login(self.author)
-                url = reverse(name, args=args)
-                if name == 'users:logout':
-                    response = self.client.post(url)
-                else:
-                    response = self.client.get(url)
+        for url, status in urls:
+            with self.subTest(url=url):
+                response = self.client_author.get(url)
                 self.assertEqual(response.status_code, status)
 
     def test_redirect_for_anonymous_client(self):
         """Тест редиректа анонимного пользователя."""
-        login_url = reverse('users:login')
-        names = (
-            (self.APP_NAME + ':add', None),
-            (self.APP_NAME + ':edit', (self.note.slug,)),
-            (self.APP_NAME + ':detail', (self.note.slug,)),
-            (self.APP_NAME + ':delete', (self.note.slug,)),
-            (self.APP_NAME + ':list', None),
-            (self.APP_NAME + ':success', None)
+        urls = (
+            self.url_note_add,
+            self.url_note_edit,
+            self.url_note_detail,
+            self.url_note_delete,
+            self.url_note_list,
+            self.url_note_success
         )
-        for name, args in names:
-            with self.subTest(name=name):
-                url = reverse(name, args=args)
-                redirect_url = f'{login_url}?next={url}'
+        for url in urls:
+            with self.subTest(url=url):
+                redirect_url = f'{self.url_user_login}?next={url}'
                 response = self.client.get(url)
                 self.assertRedirects(response, redirect_url)
