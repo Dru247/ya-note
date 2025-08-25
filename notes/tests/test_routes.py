@@ -45,8 +45,11 @@ class TestRoutes(BaseFixtures):
 
     def test_availability_logout_anonymous_and_aut_client(self):
         """Тест доступа logout для анонимного и авторизированного клиента."""
-        for client in (self.client, self.client_reader):
-            with self.subTest():
+        for client, name_client in (
+            (self.client, 'анонимный клиент'),
+            (self.client_reader, 'клиент автора')
+        ):
+            with self.subTest(client=name_client):
                 response = client.post(self.url_user_logout)
                 self.assertEqual(response.status_code, HTTPStatus.OK)
 

@@ -20,25 +20,24 @@ class TestNoteCreation(BaseFixtures):
         super().setUpTestData()
         cls.form_data = {
             'title': cls.NOTE_TITLE,
-            'text': cls.NOTE_TEXT
+            'text': cls.NOTE_TEXT,
+            'slug': cls.NOTE_SLUG
         }
 
     def test_user_can_create_comment(self):
         """Авторизированный пользователь может создать запись."""
-        first_notes_count = Note.objects.count()
+        Note.objects.all().delete()
         response = self.client_reader.post(
             self.url_note_add,
             data=self.form_data
         )
         self.assertRedirects(response, self.url_note_success)
-        second_notes_count = Note.objects.count()
-        self.assertEqual(second_notes_count - first_notes_count, 1)
-        note = Note.objects.get(
-            title=self.form_data['title'],
-            text=self.form_data['text'],
-            author=self.reader
-        )
-        self.assertIsNotNone(note)
+        self.assertEqual(Note.objects.count(), 1)
+        note = Note.objects.get()
+        self.assertEqual(note.title, self.form_data['title'])
+        self.assertEqual(note.text, self.form_data['text'])
+        self.assertEqual(note.slug, self.form_data['slug'])
+        self.assertEqual(note.author, self.reader)
 
     def test_anonymous_user_cant_create_comment(self):
         """Анонимный пользователь не может создать запись."""
@@ -56,9 +55,9 @@ class TestNoteEditDelete(BaseFixtures):
         """Тест фикстуры."""
         super().setUpTestData()
         cls.edit_form_data = {
-            'title': cls.note.title + 'new',
-            'text': cls.note.text + 'new',
-            'slug': cls.note.slug + 'new'
+            'title': f'{cls.note.title} new',
+            'text': f'{cls.note.text} new',
+            'slug': f'{cls.note.slug}_new'
         }
 
     def test_author_can_delete_note(self):
@@ -89,6 +88,7 @@ class TestNoteEditDelete(BaseFixtures):
         self.assertEqual(edit_note.title, self.edit_form_data['title'])
         self.assertEqual(edit_note.text, self.edit_form_data['text'])
         self.assertEqual(edit_note.slug, self.edit_form_data['slug'])
+        self.assertEqual(edit_note.author, self.note.author)
 
     def test_user_cant_edit_comment_of_another_user(self):
         """Тест изменения комментария читателем."""
@@ -98,9 +98,10 @@ class TestNoteEditDelete(BaseFixtures):
         )
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
         edit_note = Note.objects.get(pk=self.note.pk)
-        self.assertNotEqual(edit_note.title, self.edit_form_data['title'])
-        self.assertNotEqual(edit_note.text, self.edit_form_data['text'])
-        self.assertNotEqual(edit_note.slug, self.edit_form_data['slug'])
+        self.assertEqual(edit_note.title, self.note.title)
+        self.assertEqual(edit_note.text, self.note.text)
+        self.assertEqual(edit_note.slug, self.note.slug)
+        self.assertEqual(edit_note.author, self.note.author)
 
 
 class TestNoteSlugCreate(BaseFixtures):
@@ -111,17 +112,15 @@ class TestNoteSlugCreate(BaseFixtures):
         """Тест фикстуры."""
         super().setUpTestData()
         cls.form_data = {
-            'title': cls.note.title + 'diff',
-            'text': cls.note.text + 'diff'
+            'title': f'{cls.note.title} diff',
+            'text': f'{cls.note.text} diff'
         }
 
     def test_auto_create_slug(self):
         """Тест проверки созданного slug."""
+        Note.objects.all().delete()
         self.client_reader.post(self.url_note_add, data=self.form_data)
-        note = Note.objects.get(
-            title=self.form_data['title'],
-            text=self.form_data['text']
-        )
+        note = Note.objects.get()
         self.assertEqual(note.slug, slugify(self.form_data['title']))
 
     def test_unique_slug(self):
@@ -135,5 +134,5 @@ class TestNoteSlugCreate(BaseFixtures):
         self.assertFormError(
             form,
             'slug',
-            self.note.slug + WARNING
+            f'{self.note.slug}{WARNING}'
         )

@@ -35,18 +35,18 @@ class BaseFixtures(TestCase):
         cls.url_user_logout = reverse('users:logout')
         cls.url_user_signup = reverse('users:signup')
         cls.url_note_home = reverse('users:login')
-        cls.url_note_add = reverse(cls.APP_NAME + ':add')
-        cls.url_note_list = reverse(cls.APP_NAME + ':list')
-        cls.url_note_success = reverse(cls.APP_NAME + ':success')
+        cls.url_note_add = reverse(f'{cls.APP_NAME}:add')
+        cls.url_note_list = reverse(f'{cls.APP_NAME}:list')
+        cls.url_note_success = reverse(f'{cls.APP_NAME}:success')
         cls.url_note_edit = reverse(
-            cls.APP_NAME + ':edit',
+            f'{cls.APP_NAME}:edit',
             args=(cls.note.slug,)
         )
         cls.url_note_detail = reverse(
-            cls.APP_NAME + ':detail',
+            f'{cls.APP_NAME}:detail',
             args=(cls.note.slug,)
         )
         cls.url_note_delete = reverse(
-            cls.APP_NAME + ':delete',
+            f'{cls.APP_NAME}:delete',
             args=(cls.note.slug,)
         )
